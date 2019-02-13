@@ -118,23 +118,27 @@ public class Simulation2 {
       for (int i = 0; i < numNodes; i++) {
     	  proposalLists.add(nodes[i].sendToFollowers());
       }
+      int largestConsensus = 0;
+      Set<Transaction> optimalSet=proposalLists.get(0);
       for (int i = 0; i < numNodes; i++) {
     	  Set<Transaction> reference = proposalLists.get(i);
     	  if (null == reference) continue;
-    	  int numConcurs = 0;
-    	  System.out.print("\nNode "+i+" size="+reference.size()+" concurs with: ");
+    	  int numConcurs = 1;
     	  proposalLists.set(i, null);
     	  for (int j = i + 1; j < numNodes; j++) {
     		  Set<Transaction> comparand = proposalLists.get(j);
     		  if (null == comparand) continue;
     		  if (comparand.equals(reference)) {
-    			  System.out.print(j+" ");
     			  proposalLists.set(j, null);
     			  ++numConcurs;
     		  }
     	  }
-    	  System.out.print(", "+numConcurs+" total\n");
+    	  if (numConcurs > largestConsensus) {
+    		  largestConsensus = numConcurs;
+    		  optimalSet = reference;
+    	  }
       }
+      System.out.println("Largest consensus="+largestConsensus+" size="+optimalSet.size());
 
    }
 

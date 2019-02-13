@@ -6,16 +6,19 @@ import java.util.Set;
 public class CompliantNode implements Node {
 
     private Set<Transaction> initialTransactions;
-    private Set<Transaction> proposedTransactions;
+    private Set<Transaction> proposedTransactions, priorPopular;
 	private boolean[] myFollowees;
 	int roundNum;
 	private static boolean verbose = false;
 	static int nodeCount = 0; // TODO DEBUG
 	final int nodeNum;
+	private final int numRounds;
 
 	public CompliantNode(double p_graph, double p_malicious, double p_txDistribution, int numRounds) {
         roundNum = 0;
         nodeNum = nodeCount++;
+        priorPopular = new HashSet<>();
+        this.numRounds = numRounds;
     }
 
     public void setFollowees(boolean[] followees) {
@@ -25,6 +28,7 @@ public class CompliantNode implements Node {
     public void setPendingTransaction(Set<Transaction> pendingTransactions) {
         initialTransactions = pendingTransactions;
         proposedTransactions = initialTransactions;
+        priorPopular = initialTransactions;
     }
 
 	public Set<Transaction> sendToFollowers() {
@@ -33,18 +37,27 @@ public class CompliantNode implements Node {
     }
 
     public void receiveFromFollowees(Set<Candidate> candidates) {
-    	Set<Transaction> knownTransactions = new HashSet<>(initialTransactions);
+    	Set<Transaction> knownTransactions = new HashSet<>();
     	Set<Transaction> popularTransactions = new HashSet<>();
     	++roundNum;
     	for (Candidate c : candidates) {
     		Transaction tx = c.tx;
-			if (knownTransactions.contains(tx)) {
+    		if (knownTransactions.contains(tx)) {
     			popularTransactions.add(tx);
+    		} else {
+    			knownTransactions.add(tx);
+    			if (initialTransactions.contains(tx)) {
+    				popularTransactions.add(tx);
+    			}
     		}
-			knownTransactions.add(tx);
     	}
-    	proposedTransactions = popularTransactions;
-    	//log("round "+roundNum+" num candidates="+candidates.size()+" duplicates = "+popularTransactions.size());
+    	if (roundNum < 5) {
+    		proposedTransactions = new HashSet<>(popularTransactions);
+    		proposedTransactions.addAll(priorPopular);
+    	} else {
+    		proposedTransactions = popularTransactions;
+    	}
+    	priorPopular = popularTransactions;
     }
 
 	private static void log(String msg) {

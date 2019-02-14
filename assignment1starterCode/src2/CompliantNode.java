@@ -6,7 +6,7 @@ import java.util.Set;
 public class CompliantNode implements Node {
 
     private Set<Transaction> initialTransactions;
-    private Set<Transaction> proposedTransactions, priorPopular;
+    private Set<Transaction> proposedTransactions;
 	private boolean[] myFollowees;
 	int roundNum;
 	private static boolean verbose = false;
@@ -17,7 +17,6 @@ public class CompliantNode implements Node {
 	public CompliantNode(double p_graph, double p_malicious, double p_txDistribution, int numRounds) {
         roundNum = 0;
         nodeNum = nodeCount++;
-        priorPopular = new HashSet<>();
         this.numRounds = numRounds;
     }
 
@@ -28,11 +27,9 @@ public class CompliantNode implements Node {
     public void setPendingTransaction(Set<Transaction> pendingTransactions) {
         initialTransactions = pendingTransactions;
         proposedTransactions = initialTransactions;
-        priorPopular = initialTransactions;
     }
 
 	public Set<Transaction> sendToFollowers() {
-		log("round="+roundNum+" node="+nodeNum+" proposed count="+proposedTransactions.size()+" hash="+hashTransactions(proposedTransactions));
         return proposedTransactions;
     }
 
@@ -51,13 +48,11 @@ public class CompliantNode implements Node {
     			}
     		}
     	}
-    	if (roundNum < 5) {
-    		proposedTransactions = new HashSet<>(popularTransactions);
-    		proposedTransactions.addAll(priorPopular);
-    	} else {
-    		proposedTransactions = popularTransactions;
+    	proposedTransactions = new HashSet<>(popularTransactions);
+    	if (roundNum < numRounds/2) {
+    		proposedTransactions.addAll(initialTransactions);
+    		proposedTransactions.addAll(knownTransactions);
     	}
-    	priorPopular = popularTransactions;
     }
 
 	private static void log(String msg) {
@@ -81,7 +76,7 @@ public class CompliantNode implements Node {
 		log("hash="+hash);
 	}
 	
-	private static int hashTransactions(Set<Transaction> transSet) {
+	public static int hashTransactions(Set<Transaction> transSet) {
 		int hash = 0;
 		for (Transaction t: transSet) {
 			hash += t.id;

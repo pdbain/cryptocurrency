@@ -114,12 +114,16 @@ public class Simulation2 {
 
       // print results
       ArrayList<Set<Transaction>> proposalLists = new ArrayList<>();
+      int hashes[] = new int[numNodes];
 
       for (int i = 0; i < numNodes; i++) {
     	  proposalLists.add(nodes[i].sendToFollowers());
       }
       int largestConsensus = 0;
       Set<Transaction> optimalSet=proposalLists.get(0);
+      for (int i = 0; i < numNodes; i++) {
+    	  hashes[i] = CompliantNode.hashTransactions(nodes[i].sendToFollowers());
+      }
       for (int i = 0; i < numNodes; i++) {
     	  Set<Transaction> reference = proposalLists.get(i);
     	  if (null == reference) continue;
@@ -128,7 +132,7 @@ public class Simulation2 {
     	  for (int j = i + 1; j < numNodes; j++) {
     		  Set<Transaction> comparand = proposalLists.get(j);
     		  if (null == comparand) continue;
-    		  if (comparand.equals(reference)) {
+    		  if (hashes[j] == hashes[i]) {
     			  proposalLists.set(j, null);
     			  ++numConcurs;
     		  }

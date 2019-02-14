@@ -30,30 +30,28 @@ public class CompliantNode implements Node {
     }
 
 	public Set<Transaction> sendToFollowers() {
+    	log("Node="+nodeNum+" round="+roundNum+" proposed="+proposedTransactions.size());
         return proposedTransactions;
     }
 
-    public void receiveFromFollowees(Set<Candidate> candidates) {
-    	Set<Transaction> knownTransactions = new HashSet<>();
-    	Set<Transaction> popularTransactions = new HashSet<>();
-    	++roundNum;
-    	for (Candidate c : candidates) {
-    		Transaction tx = c.tx;
-    		if (knownTransactions.contains(tx)) {
-    			popularTransactions.add(tx);
-    		} else {
-    			knownTransactions.add(tx);
-    			if (initialTransactions.contains(tx)) {
-    				popularTransactions.add(tx);
-    			}
-    		}
-    	}
-    	proposedTransactions = new HashSet<>(popularTransactions);
-    	if (roundNum < numRounds/2) {
-    		proposedTransactions.addAll(initialTransactions);
-    		proposedTransactions.addAll(knownTransactions);
-    	}
-    }
+	public void receiveFromFollowees(Set<Candidate> candidates) {
+		Set<Transaction> knownTransactions = new HashSet<>(initialTransactions);
+		Set<Transaction> popularTransactions = new HashSet<>();
+		++roundNum;
+		for (Candidate c : candidates) {
+			Transaction tx = c.tx;
+			if (knownTransactions.contains(tx)) {
+				popularTransactions.add(tx);
+			}
+			knownTransactions.add(tx);
+		}
+		proposedTransactions = new HashSet<>();
+		if (roundNum < numRounds/2) {
+			proposedTransactions.addAll(knownTransactions);
+		} else {
+			proposedTransactions.addAll(popularTransactions);
+		}
+	}
 
 	private static void log(String msg) {
 		if (verbose ) {

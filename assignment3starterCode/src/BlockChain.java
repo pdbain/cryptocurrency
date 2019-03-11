@@ -1,7 +1,9 @@
 import static java.util.Objects.nonNull;
+import static java.util.Objects.isNull;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map.Entry;
 
 // Block Chain should maintain only limited block nodes to satisfy the functions
 // You should not have all the blocks added to the block chain in memory 
@@ -57,9 +59,13 @@ public class BlockChain {
     }
 
      int getBlockHeight(Block cursor) {
-     	HashMap<Block, Integer> blockHeights = new HashMap<>(chain.size());
-     	blockHeights.put(root, Integer.valueOf(1));
-    	return getBlockHeight(cursor, blockHeights);
+    	 int height = 1;
+    	 while (cursor != root) {
+     		byte[] prevBlockHash = cursor.getPrevBlockHash();
+ 			cursor = chain.get(new ByteArrayWrapper(prevBlockHash));
+     		++height;
+     	}
+    	return height;
     }
     /** Get the UTXOPool for mining a new block on top of max height block */
     public UTXOPool getMaxHeightUTXOPool() {
@@ -87,12 +93,64 @@ public class BlockChain {
      */
     public boolean addBlock(Block block) {
     	ByteArrayWrapper blockHash = new ByteArrayWrapper(block.getHash());
+    	byte[] prevBlockHash = block.getPrevBlockHash();
+    	if (isNull(prevBlockHash)) return false;
+		ByteArrayWrapper prevHash = new ByteArrayWrapper(prevBlockHash);
+		Block prevBlock = chain.get(prevHash);
+		if (isNull(prevBlock)) return false;
+		int blockHeight = getBlockHeight(prevBlock);
+		if (blockHeight > CUT_OFF_AGE) return false;
+    	if (CUT_OFF_AGE == blockHeight) {
+    		trimChain(prevBlock); 		
+    	}
     	chain.put(blockHash, block);
-    	return false; // TODO
+    	return true;
 
     }
 
-    /** Add a transaction to the transaction pool */
+    private void trimChain(Block start) {
+		Block cursor = start;
+		Block child = start;
+		ByteArrayWrapper parentHash = null;
+		HashMap<Block, Boolean> blockStatus = new HashMap<>(chain.size());
+		do {
+	    	byte[] parentHashBytes = cursor.getPrevBlockHash();
+			parentHash = new ByteArrayWrapper(parentHashBytes);
+			child = cursor;
+			blockStatus.put(cursor, Boolean.FALSE);
+			cursor = chain.get(parentHash);
+		} while (cursor != root);
+		blockStatus.put(root, Boolean.TRUE);
+		removeOrphans(blockStatus);
+		root = child;
+	}
+
+	private void removeOrphans(HashMap<Block, Boolean> blockStatus) {
+    	for (Block b: blockStatus.keySet()) {
+    		boolean status = isOrphan(b, blockStatus);
+    	}
+    	for (Entry<Block, Boolean> e: blockStatus.entrySet()) {
+    		boolean isDead = e.getValue().booleanValue();
+			if (isDead) {
+    			chain.remove(new ByteArrayWrapper(e.getKey().getHash()));
+    		}
+    	}
+	}
+
+	private boolean isOrphan(Block cursor, HashMap<Block, Boolean> blockStatus) {
+    	Boolean dead = blockStatus.get(cursor);
+    	if (nonNull(dead)) {
+    		return dead.booleanValue();
+    	} else {
+    		byte[] prevBlockHash = cursor.getPrevBlockHash();
+			Block parent = chain.get(new ByteArrayWrapper(prevBlockHash));
+    		boolean myStatus = isOrphan(parent, blockStatus);
+    		blockStatus.put(cursor, Boolean.valueOf(myStatus));
+    		return myStatus;
+    	}
+	}
+
+	/** Add a transaction to the transaction pool */
     public void addTransaction(Transaction tx) {
         // IMPLEMENT THIS
         txPool.addTransaction(tx);
@@ -105,5 +163,9 @@ public class BlockChain {
     		int h = getBlockHeight(b, blockHeights);
     		System.err.println("Block "+b.hashCode()+" height " + h);
     	}
+    }
+    
+    boolean contains(Block b) {
+    	return chain.containsKey(new ByteArrayWrapper(b.getHash()));
     }
 }

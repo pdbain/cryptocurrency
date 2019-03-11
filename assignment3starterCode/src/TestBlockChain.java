@@ -2,6 +2,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 
 import junit.framework.TestCase;
@@ -92,12 +93,27 @@ public class TestBlockChain extends TestCase {
 		assertEquals(sideChain[sideChain.length - 1], chain.getMaxHeightBlock());
 		
 	}
+	
+	public void testAging() {
+		Block mainChain[] = new Block[15];
+		mainChain[0] = genesisBlock;
+		for (int i = 1; i < mainChain.length; ++i) {
+			Block newBlock = makeBlock(mainChain[i - 1], mainKey);
+			mainChain[i] = newBlock;
+			for (int j = 0; j <= i; ++j) {
+				boolean valid = (i - j) < BlockChain.CUT_OFF_AGE;
+				boolean present = chain.contains(mainChain[j]);
+				assertEquals("newest="+i+" block "+j+" present:", valid, present);
+			}
+		}
+	}
 
 	private Block makeBlock(Block prevBlock, PublicKey theKey) {
+		assertTrue(chain.contains(prevBlock));
 		Block newBlock = new Block(prevBlock.getHash(), theKey);
 		newBlock.addTransaction(newBlock.getCoinbase());
 		newBlock.finalize();
-		chain.addBlock(newBlock);
+		assertTrue(chain.addBlock(newBlock));
 		return newBlock;
 	}
 

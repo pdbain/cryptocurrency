@@ -91,19 +91,25 @@ public class BlockChain {
      * 
      * @return true if block is successfully added
      */
-    public boolean addBlock(Block block) {
-    	ByteArrayWrapper blockHash = new ByteArrayWrapper(block.getHash());
-    	byte[] prevBlockHash = block.getPrevBlockHash();
+    public boolean addBlock(Block blk) {
+    	ByteArrayWrapper blockHash = new ByteArrayWrapper(blk.getHash());
+    	byte[] prevBlockHash = blk.getPrevBlockHash();
     	if (isNull(prevBlockHash)) return false;
 		ByteArrayWrapper prevHash = new ByteArrayWrapper(prevBlockHash);
 		Block prevBlock = chain.get(prevHash);
 		if (isNull(prevBlock)) return false;
+		
+		for (Transaction blkT: blk.getTransactions()) {
+			byte[] hash = blkT.getHash();
+			Transaction poolT = txPool.getTransaction(hash);
+			if (isNull(poolT)) return false;
+		}
 		int blockHeight = getBlockHeight(prevBlock);
 		if (blockHeight > CUT_OFF_AGE) return false;
     	if (CUT_OFF_AGE == blockHeight) {
     		trimChain(prevBlock); 		
     	}
-    	chain.put(blockHash, block);
+    	chain.put(blockHash, blk);
     	return true;
 
     }

@@ -108,6 +108,38 @@ public class TestBlockChain extends TestCase {
 		}
 	}
 
+	public void testBranchAging() throws NoSuchAlgorithmException {
+		Block mainChain[] = new Block[BlockChain.CUT_OFF_AGE * 2];
+		mainChain[0] = genesisBlock;
+		int resumptionPoint = 0;
+		for (int i = 1; i < BlockChain.CUT_OFF_AGE - 3; ++i) {
+			Block newBlock = makeBlock(mainChain[i - 1], mainKey);
+			mainChain[i] = newBlock;
+			resumptionPoint = i + 1;
+		}
+		PublicKey sideKey = makePublicKey();
+		Block sideChain[] = new Block[4];
+		sideChain[0] = mainChain[3];
+		for (int i = 1; i < sideChain.length; ++i) {
+			Block newBlock = makeBlock(sideChain[i - 1], sideKey);
+			sideChain[i] = newBlock;
+		}
+		for (int i = resumptionPoint; i < mainChain.length; ++i) {
+			Block newBlock = makeBlock(mainChain[i - 1], mainKey);
+			mainChain[i] = newBlock;
+			for (int j = 1; j < sideChain.length; ++j) {
+				boolean valid = (i - 3) < BlockChain.CUT_OFF_AGE;
+				boolean present = chain.contains(sideChain[j]);
+				assertEquals("newest="+i+" block "+j+" present:", valid, present);
+			}
+			for (int j = 0; j <= i; ++j) {
+				boolean valid = (i - j) < BlockChain.CUT_OFF_AGE;
+				boolean present = chain.contains(mainChain[j]);
+				assertEquals("newest="+i+" block "+j+" present:", valid, present);
+			}
+		}
+	}
+
 	private Block makeBlock(Block prevBlock, PublicKey theKey) {
 		assertTrue(chain.contains(prevBlock));
 		Block newBlock = new Block(prevBlock.getHash(), theKey);

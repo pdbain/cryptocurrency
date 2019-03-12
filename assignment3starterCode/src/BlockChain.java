@@ -121,14 +121,14 @@ public class BlockChain {
 			cursor = chain.get(parentHash);
 		} while (cursor != root);
 		blockStatus.put(root, Boolean.TRUE);
+    	for (Block b: chain.values()) {
+    		boolean status = isOrphan(b, blockStatus);
+    	}
 		removeOrphans(blockStatus);
 		root = child;
 	}
 
 	private void removeOrphans(HashMap<Block, Boolean> blockStatus) {
-    	for (Block b: blockStatus.keySet()) {
-    		boolean status = isOrphan(b, blockStatus);
-    	}
     	for (Entry<Block, Boolean> e: blockStatus.entrySet()) {
     		boolean isDead = e.getValue().booleanValue();
 			if (isDead) {
@@ -143,7 +143,7 @@ public class BlockChain {
     		return dead.booleanValue();
     	} else {
     		byte[] prevBlockHash = cursor.getPrevBlockHash();
-			Block parent = chain.get(new ByteArrayWrapper(prevBlockHash));
+    		Block parent = chain.get(new ByteArrayWrapper(prevBlockHash));
     		boolean myStatus = isOrphan(parent, blockStatus);
     		blockStatus.put(cursor, Boolean.valueOf(myStatus));
     		return myStatus;
@@ -152,7 +152,7 @@ public class BlockChain {
 
 	/** Add a transaction to the transaction pool */
     public void addTransaction(Transaction tx) {
-        // IMPLEMENT THIS
+        // IMPLEMENT THIS: DONE
         txPool.addTransaction(tx);
     }
     
@@ -168,4 +168,12 @@ public class BlockChain {
     boolean contains(Block b) {
     	return chain.containsKey(new ByteArrayWrapper(b.getHash()));
     }
+
+	static void log(String msg, Block obj) {
+		log(msg+obj.hashCode());
+	}
+
+	static void log(String msg) {
+		System.err.println(msg);
+	}
 }
